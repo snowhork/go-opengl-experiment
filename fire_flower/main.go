@@ -28,8 +28,8 @@ func main() {
 
 	initOpenGL()
 
-	flower := fire_flower.NewFireFlower(basic.NewPoint(0, 0.5, 0),
-		0.003, 30, 6, 20)
+	flower := fire_flower.NewFireFlower(basic.NewPoint(0, 0.25, 0),
+		0.002, 3, 50)
 
 	for !window.ShouldClose() {
 		flower.Update()
