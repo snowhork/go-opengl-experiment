@@ -26,21 +26,45 @@ func main() {
 	window := initGlfw()
 	defer glfw.Terminate()
 
+
 	initOpenGL()
 
-	flower := fire_flower.NewFireFlower(basic.NewPoint(0, 0.25, 0),
-		0.002, 3, 50)
+	flowers := make([]*fire_flower.FireFlower, 0, 20)
 
+	mouseCallback := func(window *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
+		if action != glfw.Press {
+			return
+		}
+		x, y := window.GetCursorPos()
+		w, h := window.GetSize()
+
+		x -= float64(w)/2.0
+		y -= float64(h)/2.0
+		x /= float64(w)/2.0
+		y /= -float64(h)/2.0
+
+		log.Println(x, y)
+		flower := fire_flower.NewFireFlower(basic.NewPoint(float32(x), float32(y), 0),
+			0.002, 3, 50)
+		flowers = append(flowers, flower)
+
+	}
+
+	window.SetMouseButtonCallback(mouseCallback)
 	for !window.ShouldClose() {
-		flower.Update()
-		draw(flower, window)
+		for _, flower := range flowers  {
+			flower.Update()
+		}
+		draw(flowers, window)
 	}
 }
 
-func draw(drawable Drawable, window *glfw.Window) {
+func draw(drawables []*fire_flower.FireFlower, window *glfw.Window) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	drawable.Draw()
+	for _, drawable := range drawables {
+		drawable.Draw()
+	}
 
 	glfw.PollEvents()
 	window.SwapBuffers()
