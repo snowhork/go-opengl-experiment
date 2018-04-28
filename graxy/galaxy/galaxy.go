@@ -14,15 +14,8 @@ type Galaxy struct {
 
 
 const (
-	G = 0.05
+	G = 0.02
 	ETA = 0.00001
-	GFACTOR = 3
-
-	DISTANCE_FACTOR = 1
-
-	MINMASS = 1e4
-	MAXMASS = 1e10
-
 )
 func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 
@@ -50,7 +43,7 @@ func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 			X: float32(r*math.Cos(theta)),
 			Y: float32(eps*r*math.Sin(theta))}
 		v := &basic.Point{
-			X: -float32(V*r*math.Sin(theta)),
+			X: -float32(eps*V*r*math.Sin(theta)),
 			Y: float32(V*r*math.Cos(theta))}
 		stars[i] = newStar(p, v,
 			1.0/float32(r))
@@ -113,12 +106,12 @@ func (g *Galaxy) Update() {
 				continue
 			}
 			d := starFrom.Current.Sub(starTo.Current)
-			force := d.Mult(G*starFrom.mass*starTo.mass/(float32(math.Pow(float64(d.Length())*DISTANCE_FACTOR, GFACTOR))+ETA))
+			force := d.Mult(G*starFrom.mass*starTo.mass/(float32(math.Pow(float64(d.Length()), 3))+ETA))
 			starTo.force = starTo.force.Add(force)
 		}
 	}
 	for _, star := range g.stars {
-		star.accelerate(0.0001)
+		star.accelerate(0.00015)
 	}
 
 }

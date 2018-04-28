@@ -42,7 +42,7 @@ func (s *star) array() []float32 {
 	array := make([]float32, (VertexCount*3)*7)
 
 	for i := 0; i < VertexCount; i++ {
-		r := 0.005
+		r := 0.01
 		theta := math.Pi*2.0*float64(i)/ VertexCount
 
 		array[(i*3)*7+0], array[(i*3)*7+1], array[(i*3)*7+2] = s.Current.Elements()
