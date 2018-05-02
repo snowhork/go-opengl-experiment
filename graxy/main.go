@@ -32,6 +32,7 @@ func main() {
 
 	rand.Seed(123456)
 	g := galaxy.NewGaraxy(500, 0)
+	//g.Update()
 
 	for !window.ShouldClose() {
 		g.Update()

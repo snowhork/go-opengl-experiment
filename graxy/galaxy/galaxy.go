@@ -14,30 +14,20 @@ type Galaxy struct {
 
 
 const (
-	G = 0.02
-	ETA = 0.00001
+	G = 0.00001
+	ETA = 0.0001
+	dt = 0.001
 )
 func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 
 	stars := make([]*star, largeCount+smallCount)
 
-	//randomLarge := func() float32 {
-	//	return float32(rand.NormFloat64()*0.4 - 0.5)
-	//}
-	//
-	//randomSmall := func() float32 {
-	//	return float32(rand.NormFloat64()*0.2 + 0.5)
-	//}
-
-
 	for i := 0; i < largeCount ; i++  {
-		r := rand.Float64()*0.5 + 0.0000001
+		r := rand.Float64()*0.5 + 0.000001
 		theta := rand.Float64()*2*math.Pi
+		eps := 1.0
 
-		//eps := rand.Float64()*0.1 + 0.95
-		eps := 0.5
-
-		V := 0.003
+		V := 0.01
 
 		p := &basic.Point{
 			X: float32(r*math.Cos(theta)),
@@ -46,35 +36,8 @@ func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 			X: -float32(eps*V*r*math.Sin(theta)),
 			Y: float32(V*r*math.Cos(theta))}
 		stars[i] = newStar(p, v,
-			1.0/float32(r))
+			1.0/float32(r*r))
 	}
-
-	//for i := largeCount; i < largeCount+smallCount ; i++  {
-	//	v := basic.Point{X: float32(rand.NormFloat64()*0.2), Y: float32(rand.NormFloat64()*0.2), Z: 0.0}
-	//	stars[i] = newStar(v.Add(&basic.Point{X: 0.5, Y: 0.5}), v.Mult(0.01), 1.0)
-	//}
-
-
-	//stars[largeCount-3] = newStar(&basic.Point{
-	//	X: float32(0.6*math.Cos(-math.Pi/6.0)),
-	//	Y: float32(0.6*math.Sin(-math.Pi/6.0)),
-	//	Z: 0.0},
-	//	&basic.Point{},
-	//	1e12)
-	//
-	//stars[largeCount-2] = newStar(&basic.Point{
-	//	X: float32(0.6*math.Cos(math.Pi/2.0)),
-	//	Y: float32(0.6*math.Sin(math.Pi/2.0)),
-	//	Z: 0.0},
-	//	&basic.Point{},
-	//	1e12)
-
-	//stars[largeCount-1] = newStar(&basic.Point{
-		//X: float32(0.0*math.Cos(math.Pi*2.0/3.0)),
-		//Y: float32(0.0*math.Sin(math.Pi*2.0/3.0)),
-		//Z: 0.0},
-		//&basic.Point{},
-		//1e11)
 
 	vertShader, err := gfx.NewShaderFromFile("galaxy/shaders/basic.vert", gl.VERTEX_SHADER)
 	if err != nil {
@@ -110,11 +73,39 @@ func (g *Galaxy) Update() {
 			starTo.force = starTo.force.Add(force)
 		}
 	}
-	for _, star := range g.stars {
-		star.accelerate(0.00015)
-	}
 
+	//nodes := g.Tree()
+	//
+	//for _, node := range nodes {
+	//	star := node.stars[0]
+	//	beforeParent := node
+	//	currentParent := node.parent
+	//	i := 0
+	//	j := 0
+	//	for ; currentParent != nil; {
+	//		j += 1
+	//		for _, child := range currentParent.children {
+	//			if child == beforeParent {
+	//				i += 1
+	//				continue
+	//			}
+	//			d := star.Current.Sub(child.balance)
+	//			force := d.Mult(G*star.mass*child.mass/(float32(math.Pow(float64(d.Length()), 3))+ETA))
+	//			star.force = star.force.Add(force)
+	//		}
+	//		beforeParent = currentParent
+	//		currentParent = currentParent.parent
+	//	}
+	//
+	//	//log.Println(i, j)
+	//}
+
+	for _, star := range g.stars {
+		star.accelerate(dt)
+	}
 }
+
+
 
 func (g *Galaxy) Draw() {
 	points := make([]float32, (VertexCount*3)*7*len(g.stars))

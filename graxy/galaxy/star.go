@@ -2,8 +2,8 @@ package galaxy
 
 import (
 	"../basic"
-	"github.com/lucasb-eyer/go-colorful"
 	"math"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 type star struct {
@@ -34,8 +34,10 @@ func (s *star) accelerate(delta float32) {
 }
 
 func (s *star) color() (float32,float32,float32,float32) {
-	c := colorful.Hsv(240.0/0.50001*float64(1.0/s.mass), 1.0, 1.0)
+	c := colorful.Hsv(240.0/0.50001*1.0/math.Sqrt(float64(s.mass)), 1.0, 1.0)
 	return float32(c.R),float32(c.G),float32(c.B), 1.0
+
+	//return 1.0, 1.0, float32(1.0/s.mass), 1.0
 }
 
 func (s *star) array() []float32 {
