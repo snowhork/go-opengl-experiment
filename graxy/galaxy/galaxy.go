@@ -27,7 +27,7 @@ func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 		theta := rand.Float64()*2*math.Pi
 		eps := 1.0
 
-		V := 0.01
+		V := 0.02
 
 		p := &basic.Point{
 			X: float32(r*math.Cos(theta)),
