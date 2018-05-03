@@ -15,15 +15,37 @@ type node struct {
 	pxSum float32
 	pySum float32
 
+	xMax float32
+	xMin float32
+	yMax float32
+	yMin float32
+
 }
 
 func (g *Galaxy) Tree() []*node {
+	gx := float32(0.0)
+	gy := float32(0.0)
+	M := float32(0.0)
+
+	for _, star := range g.stars {
+		gx += star.Current.X*star.mass
+		gy += star.Current.Y*star.mass
+		M += star.mass
+	}
+
+	gx /= M
+	gy /= M
+
 	n := &node{
-		parent: nil,
+		parent:   nil,
 		children: make([]*node, 0, 4),
-		balance: nil,
-		stars: g.stars,
-		mass: 0,
+		balance:  &basic.Point{X: gx, Y: gy},
+		stars:    g.stars,
+		mass:     M,
+		xMax:     0.99,
+		xMin:     -0.99,
+		yMax:     0.99,
+		yMin:     -0.99,
 	}
 
 	nodes := make([]*node, 0, len(g.stars))
@@ -32,15 +54,19 @@ func (g *Galaxy) Tree() []*node {
 	return nodes
 }
 
-func newNode(parent *node) *node {
+func newNode(parent *node, xMax, xMin, yMax, yMin float32) *node {
 	count := 12
 
 	n := &node{
-		parent: parent,
-		children: make([]*node, 0, 4),
-		balance: nil,
-		stars: make([]*star, 0, count),
-		mass: 0,
+		parent:     parent,
+		children:   make([]*node, 0, 4),
+		balance:    nil,
+		stars:      make([]*star, 0, count),
+		mass:       0,
+		xMax:       xMax,
+		xMin: 		xMin,
+		yMax:       yMax,
+		yMin:       yMin,
 	}
 	return n
 }
@@ -75,11 +101,12 @@ func (n *node) UpdateByTree(nodes *[]*node) {
 	}
 
 	gx, gy := n.calcBalance()
+	gx, gy = n.balance.X, n.balance.Y
 
-	lowerLeft := newNode(n)
-	upperLeft := newNode(n)
-	lowerRight := newNode(n)
-	upperRight := newNode(n)
+	lowerLeft := newNode(n, gx, n.xMin, gy, n.yMin)
+	upperLeft := newNode(n, gx, n.xMin, n.yMax, gy)
+	lowerRight := newNode(n, n.xMax, gx, gy, n.yMin)
+	upperRight := newNode(n, n.xMax, gx, n.yMax, gy)
 
 	for _, star := range n.stars {
 		if star.Current.X >= gx {
@@ -102,10 +129,10 @@ func (n *node) UpdateByTree(nodes *[]*node) {
 	lowerRight.finalize()
 	upperRight.finalize()
 
-	//if len(lowerLeft.stars) > 1 {
-	//	log.Println(lowerLeft.stars[0].Current, lowerLeft.stars[1].Current)
+	//if len(yMin.stars) > 1 {
+	//	log.Println(yMin.stars[0].Current, yMin.stars[1].Current)
 	//}
-	//log.Println(len(lowerLeft.stars), len(upperLeft.stars), len(lowerRight.stars), len(upperRight.stars))
+	//log.Println(len(yMin.stars), len(yMax.stars), len(lowerRight.stars), len(xMax.stars))
 
 	lowerLeft.UpdateByTree(nodes)
 	upperLeft.UpdateByTree(nodes)

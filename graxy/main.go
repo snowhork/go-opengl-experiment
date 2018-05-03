@@ -17,11 +17,6 @@ const (
 )
 
 
-
-type Drawable interface {
-	Draw()
-}
-
 func main() {
 	runtime.LockOSThread()
 
@@ -32,18 +27,32 @@ func main() {
 
 	rand.Seed(123456)
 	g := galaxy.NewGaraxy(500, 0)
-	//g.Update()
+	flag := false
+
+	CursorEnterCallback := func(window *glfw.Window, entered bool) {
+		flag = entered
+	}
+
+	window.SetCursorEnterCallback(CursorEnterCallback)
 
 	for !window.ShouldClose() {
-		g.Update()
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+		if flag {
+			g.Update()
+		}
+
 		draw(g, window)
+
+
 	}
 }
 
-func draw(drawable Drawable, window *glfw.Window) {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+func draw(g *galaxy.Galaxy, window *glfw.Window) {
 
-	drawable.Draw()
+
+
+	g.Draw()
+	g.DrawDebug()
 
 	glfw.PollEvents()
 	window.SwapBuffers()
