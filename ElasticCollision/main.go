@@ -21,6 +21,8 @@ type Drawable interface {
 	Draw()
 }
 
+
+const BallNum = 1
 func main() {
 	runtime.LockOSThread()
 
@@ -30,14 +32,14 @@ func main() {
 	initOpenGL()
 
 	rand.Seed(123456)
-	balls := make([]*ball.Ball, 10)
+	balls := make([]*ball.Ball, BallNum)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < BallNum; i++ {
 		balls[i] = ball.NewBall(&basic.Point{X: -0.9+float32(i)*0.2, Y: rand.Float32()})
 	}
 
 	for !window.ShouldClose() {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < BallNum; i++ {
 			balls[i].Update(0.01)
 		}
 		draw(balls, window)
@@ -47,7 +49,7 @@ func main() {
 func draw(balls []*ball.Ball, window *glfw.Window) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < BallNum; i++ {
 		balls[i].Draw()
 	}
 

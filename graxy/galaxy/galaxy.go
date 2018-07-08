@@ -6,7 +6,6 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"math/rand"
 	"math"
-	"log"
 )
 
 type Galaxy struct {
@@ -18,26 +17,29 @@ const (
 	G = 0.00001
 	ETA = 0.0001
 	dt = 0.001
+	DistanceThreshold = 0.5
+	largeCount = 500
 )
-func NewGaraxy(largeCount int, smallCount int) *Galaxy {
+func NewGaraxy(smallCount int) *Galaxy {
 
 	stars := make([]*star, largeCount+smallCount)
 
 	for i := 0; i < largeCount ; i++  {
 		r := rand.Float64()*0.5 + 0.000001
 		theta := rand.Float64()*2*math.Pi
-		eps := 1.0
+		eps := 0.5
 
 		V := 0.012
+		V = 0.0
 
 		p := &basic.Point{
-			X: float32(r*math.Cos(theta)),
-			Y: float32(eps*r*math.Sin(theta))}
+			X: r*math.Cos(theta),
+			Y: eps*r*math.Sin(theta)}
 		v := &basic.Point{
-			X: -float32(eps*V*r*math.Sin(theta)),
-			Y: float32(V*r*math.Cos(theta))}
+			X: -eps*V*r*math.Sin(theta),
+			Y: V*r*math.Cos(theta)}
 		stars[i] = newStar(p, v,
-			1.0/float32(r*r))
+			1.0/(r*r), i)
 	}
 
 	vertShader, err := gfx.NewShaderFromFile("galaxy/shaders/basic.vert", gl.VERTEX_SHADER)
@@ -62,6 +64,41 @@ func NewGaraxy(largeCount int, smallCount int) *Galaxy {
 	}
 }
 
+var Cnt = 0
+
+func search(n *node, s *star) {
+	calcforce := func(p *basic.Point, m float64) {
+		//log.Println(p)
+		d := p.Sub(s.Current)
+		force := d.Mult(G*s.mass*m/(math.Pow(d.Length(), 3)+ETA))
+		//log.Println(force)
+
+		s.force = s.force.Add(force)
+
+		Cnt += 1
+	}
+
+	if len(n.stars) == 0 {
+		return
+	}
+	if len(n.stars) == 1 {
+		if s.number == n.stars[0].number {
+			return
+		}
+		other := n.stars[0]
+		calcforce(other.Current, other.mass)
+		//log.Println(other)
+		return
+	}
+	if (n.xMax - n.xMin)/n.balance.Sub(s.Current).Length() <= DistanceThreshold {
+		//calcforce(n.balance, n.mass)
+	} else {
+		for _, child := range n.children {
+			search(child, s)
+		}
+	}
+}
+
 
 func (g *Galaxy) Update() {
 	//for i, starFrom := range g.stars {
@@ -70,34 +107,39 @@ func (g *Galaxy) Update() {
 	//			continue
 	//		}
 	//		d := starFrom.Current.Sub(starTo.Current)
-	//		force := d.Mult(G*starFrom.mass*starTo.mass/(float32(math.Pow(float64(d.Length()), 3))+ETA))
+	//		force := d.Mult(G*starFrom.mass*starTo.mass/(math.Pow(d.Length(), 3)+ETA))
+	//		//log.Println(force)
+	//
 	//		starTo.force = starTo.force.Add(force)
 	//	}
 	//}
 
-	nodes := g.Tree()
+	//log.Println(g.stars[0].force.Length(), g.stars[1].force.Length())
 
-	for _, node := range nodes {
-		star := node.stars[0]
-		beforeParent := node
-		currentParent := node.parent
-		for ; currentParent != nil; {
-			for _, child := range currentParent.children {
-				if child == beforeParent {
-					continue
-				}
-				d := star.Current.Sub(child.balance)
-				force := d.Mult(G*star.mass*child.mass/(float32(math.Pow(float64(d.Length()), 3))+ETA))
-				star.force = star.force.Add(force)
-			}
-			beforeParent = currentParent
-			currentParent = currentParent.parent
-		}
+	//log.Println(g.stars[0].prev, g.stars[1].prev)
+
+	root := g.Tree()
+
+	for _, star := range g.stars {
+		star.force = basic.Zero()
+		Cnt = 0
+		search(root, star)
+		//log.Println(Cnt)
 	}
+
+	//log.Println(g.stars[0].force.Length(), g.stars[1].force.Length())
+	//log.Println("----------------")
+	//log.Println("current", g.stars[0].Current, g.stars[1].Current)
+	//log.Println("force", g.stars[0].force, g.stars[1].force)
+	//log.Println("mass", g.stars[0].mass, g.stars[1].mass)
+	//log.Println("prev", g.stars[0].prev, g.stars[1].prev)
+
 
 	for _, star := range g.stars {
 		star.accelerate(dt)
 	}
+	//log.Println("next", g.stars[0].Current, g.stars[1].Current)
+
 }
 
 
@@ -121,86 +163,85 @@ func (g *Galaxy) Draw() {
 }
 
 func (g *Galaxy) DrawDebug() {
-	nodes := g.Tree()
+	//nodes := g.Tree()
+	//
+	//points := make([]*basic.Point, 0)
+	//children := make([]*node, 0)
 
-	points := make([]*basic.Point, 0)
-	children := make([]*node, 0)
-
-	n := nodes[400]
-
-	log.Println(n.mass, n.stars[0].mass)
-	points = append(points, n.balance)
-
-
-	beforeParent := n
-	currentParent := n.parent
-
-	cnt := 0
-	depth := 0
-	for ; currentParent != nil; {
-		depth += 1
-		for _, child := range currentParent.children {
-			if child == beforeParent {
-				continue
-			}
-			cnt += 1
-			children = append(children, child)
-			points = append(points, child.balance)
-		}
-		beforeParent = currentParent
-		currentParent = currentParent.parent
-	}
-
-	//log.Println(depth, cnt)
-
-	array := make([]float32, (VertexCount*3)*7*len(g.stars))
-
-	for i, p := range points {
-		col := float32(i+1)/float32(len(points))
-		col = 1.0
-		array = append(array, pointArray(p, col)...)
-	}
-
-	VAO := makeVao(array)
-	gl.BindVertexArray(VAO)
-
-	for i := range g.stars {
-		gl.DrawArrays(gl.TRIANGLES, int32((VertexCount*3)*7*i), VertexCount*3*7)
-	}
-
-	balanceArray := make([]float32, 0)
-
-	for _, c := range children {
-		balanceArray = append(balanceArray, pointLineArray(c)...)
-	}
-
-	VAO2 := makeVao(balanceArray)
-	gl.BindVertexArray(VAO2)
-
-	for i := range children {
-		gl.DrawArrays(gl.LINE_LOOP, int32(4*i), 4)
-	}
+	//n := nodes[400]
+	//
+	//points = append(points, n.balance)
+	//
+	//
+	//beforeParent := n
+	//currentParent := n.parent
+	//
+	//cnt := 0
+	//depth := 0
+	//for ; currentParent != nil; {
+	//	depth += 1
+	//	for _, child := range currentParent.children {
+	//		if child == beforeParent {
+	//			continue
+	//		}
+	//		cnt += 1
+	//		children = append(children, child)
+	//		points = append(points, child.balance)
+	//	}
+	//	beforeParent = currentParent
+	//	currentParent = currentParent.parent
+	//}
+	//
+	////log.Println(depth, cnt)
+	//
+	//array := make([]float32, (VertexCount*3)*7*len(g.stars))
+	//
+	//for i, p := range points {
+	//	col := float32(i+1)/float32(len(points))
+	//	col = 1.0
+	//	array = append(array, pointArray(p, col)...)
+	//}
+	//
+	//VAO := makeVao(array)
+	//gl.BindVertexArray(VAO)
+	//
+	//for i := range g.stars {
+	//	gl.DrawArrays(gl.TRIANGLES, int32((VertexCount*3)*7*i), VertexCount*3*7)
+	//}
+	//
+	//balanceArray := make([]float32, 0)
+	//
+	//for _, c := range children {
+	//	balanceArray = append(balanceArray, pointLineArray(c)...)
+	//}
+	//
+	//VAO2 := makeVao(balanceArray)
+	//gl.BindVertexArray(VAO2)
+	//
+	//for i := range children {
+	//	gl.DrawArrays(gl.LINE_LOOP, int32(4*i), 4)
+	//}
 
 	//log.Println(len(points))
 
 }
 
-func pointLineArray(n *node) []float32 {
-	array := make([]float32, 28)
-	array[0], array[1], array[2] = n.xMin, n.yMin, 0.0
-	array[3], array[4], array[5], array[6] = 1.0, 1.0, 1.0, 1.0
-
-	array[7*1+0], array[7*1+1], array[7*1+2] = n.xMin, n.yMax, 0.0
-	array[7*1+3], array[7*1+4], array[7*1+5], array[7*1+6] = 1.0, 1.0, 1.0, 1.0
-
-	array[7*2+0], array[7*2+1], array[7*2+2] = n.xMax, n.yMax, 0.0
-	array[7*2+3], array[7*2+4], array[7*2+5], array[7*2+6] = 1.0, 1.0, 1.0, 1.0
-
-	array[7*3+0], array[7*3+1], array[7*3+2] = n.xMax, n.yMin, 0.0
-	array[7*3+3], array[7*3+4], array[7*3+5], array[7*3+6] = 1.0, 1.0, 1.0, 1.0
-
-	return array
-}
+//func pointLineArray(n *node) []float32 {
+//	array := make([]float32, 28)
+//	array[0], array[1], array[2] = n.xMin, n.yMin, 0.0
+//	array[3], array[4], array[5], array[6] = 1.0, 1.0, 1.0, 1.0
+//
+//	array[7*1+0], array[7*1+1], array[7*1+2] = n.xMin, n.yMax, 0.0
+//	array[7*1+3], array[7*1+4], array[7*1+5], array[7*1+6] = 1.0, 1.0, 1.0, 1.0
+//
+//	array[7*2+0], array[7*2+1], array[7*2+2] = n.xMax, n.yMax, 0.0
+//	array[7*2+3], array[7*2+4], array[7*2+5], array[7*2+6] = 1.0, 1.0, 1.0, 1.0
+//
+//	array[7*3+0], array[7*3+1], array[7*3+2] = n.xMax, n.yMin, 0.0
+//	array[7*3+3], array[7*3+4], array[7*3+5], array[7*3+6] = 1.0, 1.0, 1.0, 1.0
+//
+//	return array
+//}
 
 func pointArray(p *basic.Point, col float32) []float32 {
 	array := make([]float32, (VertexCount*3)*7)
@@ -214,16 +255,16 @@ func pointArray(p *basic.Point, col float32) []float32 {
 
 		array[(i*3+1)*7+0], array[(i*3+1)*7+1], array[(i*3+1)*7+2] = p.Add(
 			&basic.Point{
-				X: float32(r*math.Cos(theta)),
-				Y: float32(r*math.Sin(theta)),
+				X: r*math.Cos(theta),
+				Y: r*math.Sin(theta),
 			}).Elements()
 		array[(i*3+1)*7+3], array[(i*3+1)*7+4], array[(i*3+1)*7+5], array[(i*3+1)*7+6] = col, float32(1.0), float32(1.0), float32(1.0)
 
 		theta2 := math.Pi*2.0*float64(i+1)/ VertexCount
 		array[(i*3+2)*7+0], array[(i*3+2)*7+1], array[(i*3+2)*7+2] = p.Add(
 			&basic.Point{
-				X: float32(r*math.Cos(theta2)),
-				Y: float32(r*math.Sin(theta2)),
+				X: r*math.Cos(theta2),
+				Y: r*math.Sin(theta2),
 			}).Elements()
 		array[(i*3+2)*7+3], array[(i*3+2)*7+4], array[(i*3+2)*7+5], array[(i*3+2)*7+6] = col, float32(1.0), float32(1.0), float32(1.0)
 	}

@@ -26,7 +26,7 @@ func main() {
 	initOpenGL()
 
 	rand.Seed(123456)
-	g := galaxy.NewGaraxy(500, 0)
+	g := galaxy.NewGaraxy(0)
 	flag := false
 
 	CursorEnterCallback := func(window *glfw.Window, entered bool) {

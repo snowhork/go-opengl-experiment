@@ -6,6 +6,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 
 	"../basic"
+	"log"
 )
 
 type Ball struct {
@@ -53,6 +54,7 @@ func (b *Ball) Update(dt float32) {
 	b.prev = b.current
 	b.current = next
 
+	log.Println(0.5*(b.current.Sub(b.prev).Length())*(b.current.Sub(b.prev).Length()) - g.Y*(dt*dt)*(b.current.Y))
 	if b.current.Y < -1.0 {
 
 		b.prev.Y = -1.0 - (b.prev.Y + 1.0)
